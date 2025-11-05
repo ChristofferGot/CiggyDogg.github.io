@@ -33,7 +33,7 @@
       50% { box-shadow: 0 0 40px rgba(255, 252, 232, 0.6); }
     }
 
-    #neverForget, #pressF {
+    #neverForget, #pressF, #secretHint {
       position: absolute;
       left: 50%;
       transform: translateX(-50%);
@@ -149,17 +149,17 @@
       pointer-events: none;
       z-index: 10;
       text-shadow: 0 0 10px rgba(74, 222, 128, 0.8);
-      animation: floatUp 1s ease-out forwards;
+      animation: floatUp 1.5s ease-out forwards;
     }
 
     @keyframes floatUp {
       0% {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
       }
       100% {
         opacity: 0;
-        transform: translateY(-100px);
+        transform: translateY(-120px) scale(1.2);
       }
     }
 
@@ -192,8 +192,8 @@
 
   <div id="pressF" role="button" tabindex="0">
     Press <strong>F</strong> to pay respects (<span id="fCount">0</span>)
-    <div id="secretHint" style="display: none;"></div>
   </div>
+  <div id="secretHint" style="display: none;"></div>
 
   <button class="top-button" id="resetBtn">Reset Stickers</button>
   <button class="top-button" id="addStickerBtn">+1 Sticker</button>
@@ -287,7 +287,7 @@
         if (img) {
           let scale;
           if (customImage === "Mac10Heat.png") {
-            scale = (radius * 2) / 501 * 1.8;
+            scale = (radius * 2) / 501;
           } else {
             scale = ((radius * 2) / 360) * 1.8;
           }
@@ -344,45 +344,45 @@
       plusOne.style.left = x + 'px';
       plusOne.style.top = y + 'px';
       document.body.appendChild(plusOne);
-      setTimeout(() => plusOne.remove(), 1000);
+      setTimeout(() => plusOne.remove(), 1500);
     }
 
     function updateRespectText() {
       const hint = document.getElementById('secretHint');
       const pressF = document.getElementById('pressF');
+      const fCount = document.getElementById('fCount');
+      
+      fCount.textContent = respectCount;
       
       if (respectCount === 3) {
         hint.textContent = "What is Mark's favourite number?";
         hint.style.display = 'block';
       } else if (respectCount >= 250) {
-        pressF.innerHTML = '<strong>Dumbass...</strong>';
-        hint.style.display = 'none';
+        hint.innerHTML = '<strong>Dumbass...</strong>';
+        hint.style.display = 'block';
       } else if (respectCount >= 220) {
-        pressF.innerHTML = '<strong>I warned you</strong>';
-        hint.style.display = 'none';
+        hint.innerHTML = '<strong>I warned you</strong>';
+        hint.style.display = 'block';
       } else if (respectCount >= 200) {
-        pressF.innerHTML = '<strong>You\'ve seen everything. Please stop.</strong>';
-        hint.style.display = 'none';
+        hint.innerHTML = '<strong>You\'ve seen everything. Please stop.</strong>';
+        hint.style.display = 'block';
       } else if (respectCount >= 150) {
-        pressF.innerHTML = '<strong>There\'s nothing more to see here</strong>';
-        hint.style.display = 'none';
+        hint.innerHTML = '<strong>There\'s nothing more to see here</strong>';
+        hint.style.display = 'block';
       } else if (respectCount >= 120) {
-        pressF.innerHTML = '<strong>Alright dude it\'s enough</strong>';
-        hint.style.display = 'none';
+        hint.innerHTML = '<strong>Alright dude it\'s enough</strong>';
+        hint.style.display = 'block';
       } else if (respectCount >= 100) {
-        pressF.innerHTML = '<strong>Damn you really wanted that holo huh...</strong>';
-        hint.style.display = 'none';
+        hint.innerHTML = '<strong>Damn you really wanted that holo huh...</strong>';
+        hint.style.display = 'block';
       } else if (respectCount >= 75) {
-        pressF.innerHTML = '<strong>You really wanna keep going?</strong>';
-        hint.style.display = 'none';
+        hint.innerHTML = '<strong>You really wanna keep going?</strong>';
+        hint.style.display = 'block';
       } else if (respectCount >= 67) {
-        pressF.innerHTML = '<strong>GG\'s</strong>';
+        hint.innerHTML = '<strong>GG\'s</strong>';
+        hint.style.display = 'block';
+      } else if (respectCount !== 3) {
         hint.style.display = 'none';
-      } else {
-        pressF.innerHTML = 'Press <strong>F</strong> to pay respects (<span id="fCount">' + respectCount + '</span>)';
-        if (respectCount !== 3) {
-          hint.style.display = 'none';
-        }
       }
     }
 
@@ -401,12 +401,17 @@
 
       if (respectCount === 250) {
         setTimeout(() => {
-          window.open('https://www.youtube.com/watch?v=dQw4w9WgXcQ', '_blank');
+          const newWindow = window.open('https://www.youtube.com/watch?v=dQw4w9WgXcQ', '_blank');
+          if (!newWindow) {
+            window.location.href = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+          }
         }, 1000);
       }
     }
 
     function drawTrails(context) {
+      context.globalCompositeOperation = 'destination-over';
+      
       for (const ball of balls) {
         const speed = Math.sqrt(ball.velocity.x ** 2 + ball.velocity.y ** 2);
         
@@ -442,6 +447,8 @@
           }
         }
       }
+      
+      context.globalCompositeOperation = 'source-over';
     }
 
     async function start() {
@@ -513,8 +520,21 @@
       });
 
       document.getElementById("addStickerBtn").addEventListener("click", async () => {
-        const randomIndex = Math.floor(Math.random() * imageFiles.length);
-        const newBall = await createBall(randomIndex);
+        const rand = Math.random();
+        let newBall;
+        
+        if (rand < 0.05) {
+          // 5% chance for special ball
+          newBall = await createBall(specialIndex);
+        } else if (rand < 0.15) {
+          // 10% chance for large ball
+          newBall = await createBall(largeIndex);
+        } else {
+          // 85% chance for random normal ball
+          const randomIndex = Math.floor(Math.random() * imageFiles.length);
+          newBall = await createBall(randomIndex);
+        }
+        
         Body.setVelocity(newBall, { x: (Math.random() - 0.5) * 15, y: Math.random() * -15 });
       });
 
@@ -522,12 +542,14 @@
         const img = document.getElementById("mainImage");
         const nf = document.getElementById("neverForget");
         const pf = document.getElementById("pressF");
+        const hint = document.getElementById("secretHint");
 
         const rect = img.getBoundingClientRect();
         const spacing = 10;
 
         nf.style.top = (window.scrollY + rect.bottom + spacing) + "px";
         pf.style.top = (window.scrollY + rect.bottom + spacing + nf.offsetHeight + 5) + "px";
+        hint.style.top = (window.scrollY + rect.bottom + spacing + nf.offsetHeight + pf.offsetHeight + 10) + "px";
       }
 
       window.addEventListener("resize", positionTextBelowImage);
