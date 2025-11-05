@@ -19,7 +19,7 @@
       width: 58%;
       border: 10px solid #fffce8;
       border-radius: 20px;
-      margin: 130px auto 0 auto;
+      margin: 160px auto 0 auto;
       position: relative;
       z-index: 3;
       pointer-events: none;
@@ -536,8 +536,32 @@
         });
       });
 
-      document.getElementById("addStickerBtn").addEventListener("click", () => {
-        updateRespect(window.innerWidth / 2, window.innerHeight / 2);
+      document.getElementById("addStickerBtn").addEventListener("click", async () => {
+        const rand = Math.random();
+        let customRadius = null;
+        let customImage = null;
+        
+        // 5% chance for special ball
+        if (rand < 0.05) {
+          customRadius = 60;
+          customImage = specialNewImage;
+        }
+        // 15% chance for big ball
+        else if (rand < 0.20) {
+          customRadius = 80;
+          customImage = imageFiles[Math.floor(Math.random() * imageFiles.length)];
+        }
+        // 80% chance for regular ball
+        else {
+          customRadius = 60;
+          customImage = imageFiles[Math.floor(Math.random() * imageFiles.length)];
+        }
+        
+        await createBall(balls.length, customRadius, customImage);
+        
+        // Give the new ball some initial velocity
+        const newBall = balls[balls.length - 1];
+        Body.setVelocity(newBall, { x: (Math.random() - 0.5) * 10, y: Math.random() * -10 });
       });
 
       window.addEventListener("resize", () => {
