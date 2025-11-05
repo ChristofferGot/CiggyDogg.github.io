@@ -310,6 +310,12 @@
       return ball;
     }
 
+    async function initBalls() {
+      for (let i = 0; i < NUM_BALLS; i++) {
+        await createBall(i);
+      }
+    }
+
     function createSparkles(x, y) {
       const colors = ['#FFD700', '#FFA500', '#FF69B4', '#00CED1', '#7EC8E3'];
       for (let i = 0; i < 8; i++) {
@@ -344,35 +350,35 @@
     function updateRespectText() {
       const hint = document.getElementById('secretHint');
       const fCount = document.getElementById('fCount');
-      
+
       fCount.textContent = respectCount;
-      
+
       if (respectCount >= 3 && respectCount < 67) {
         hint.textContent = "What is Mark's favourite number?";
         hint.style.display = 'block';
-      } else if (respectCount >= 250) {
-        hint.innerHTML = '<strong>Dumbass...</strong>';
-        hint.style.display = 'block';
-      } else if (respectCount >= 220) {
-        hint.innerHTML = '<strong>I warned you</strong>';
-        hint.style.display = 'block';
-      } else if (respectCount >= 200) {
-        hint.innerHTML = '<strong>You\'ve seen everything. Please stop.</strong>';
-        hint.style.display = 'block';
-      } else if (respectCount >= 150) {
-        hint.innerHTML = '<strong>There\'s nothing more to see here</strong>';
-        hint.style.display = 'block';
-      } else if (respectCount >= 120) {
-        hint.innerHTML = '<strong>Alright dude it\'s enough</strong>';
-        hint.style.display = 'block';
-      } else if (respectCount >= 100) {
-        hint.innerHTML = '<strong>Damn you really wanted that holo huh...</strong>';
+      } else if (respectCount === 67) {
+        hint.innerHTML = '<strong>GG\'s</strong>';
         hint.style.display = 'block';
       } else if (respectCount >= 75) {
         hint.innerHTML = '<strong>You really wanna keep going?</strong>';
         hint.style.display = 'block';
-      } else if (respectCount === 67) {
-        hint.innerHTML = '<strong>GG\'s</strong>';
+      } else if (respectCount >= 100) {
+        hint.innerHTML = '<strong>Damn you really wanted that holo huh...</strong>';
+        hint.style.display = 'block';
+      } else if (respectCount >= 120) {
+        hint.innerHTML = '<strong>Alright dude it\'s enough</strong>';
+        hint.style.display = 'block';
+      } else if (respectCount >= 150) {
+        hint.innerHTML = '<strong>There\'s nothing more to see here</strong>';
+        hint.style.display = 'block';
+      } else if (respectCount >= 200) {
+        hint.innerHTML = '<strong>You\'ve seen everything. Please stop.</strong>';
+        hint.style.display = 'block';
+      } else if (respectCount >= 220) {
+        hint.innerHTML = '<strong>I warned you</strong>';
+        hint.style.display = 'block';
+      } else if (respectCount >= 250) {
+        hint.innerHTML = '<strong>Dumbass...</strong>';
         hint.style.display = 'block';
       } else {
         hint.style.display = 'none';
@@ -508,33 +514,25 @@
             y: Math.random() * (ch / 2) + ball.circleRadius
           });
           Body.setVelocity(ball, { x: 0, y: 0 });
-          ball.render.sprite.texture = ball.originalTexture;
         }
         respectCount = 0;
         mac10Spawned = false;
         updateRespectText();
       });
 
-      document.getElementById("addStickerBtn").addEventListener("click", async () => {
-        await createBall(0, 60);
+      document.getElementById("addStickerBtn").addEventListener("click", () => {
+        updateRespect(window.innerWidth / 2, window.innerHeight / 2);
+      });
+
+      window.addEventListener("resize", () => {
+        Render.lookAt(render, {
+          min: { x: 0, y: 0 },
+          max: { x: window.innerWidth, y: window.innerHeight }
+        });
       });
     }
-
-    async function initBalls() {
-      for (let i = 0; i < NUM_BALLS; i++) {
-        await createBall(i);
-      }
-    }
-
-    window.addEventListener('resize', () => {
-      Render.lookAt(render, {
-        min: { x: 0, y: 0 },
-        max: { x: window.innerWidth, y: window.innerHeight }
-      });
-    });
 
     start();
   </script>
 </body>
 </html>
-
