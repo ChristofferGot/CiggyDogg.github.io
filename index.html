@@ -355,32 +355,32 @@
 
       fCount.textContent = respectCount;
 
-      if (respectCount >= 3 && respectCount < 67) {
-        hint.textContent = "What is Mark's favourite number?";
-        hint.style.display = 'block';
-      } else if (respectCount === 67) {
-        hint.innerHTML = '<strong>GG\'s</strong>';
-        hint.style.display = 'block';
-      } else if (respectCount >= 75) {
-        hint.innerHTML = '<strong>You really wanna keep going?</strong>';
-        hint.style.display = 'block';
-      } else if (respectCount >= 100) {
-        hint.innerHTML = '<strong>Damn you really wanted that holo huh...</strong>';
-        hint.style.display = 'block';
-      } else if (respectCount >= 120) {
-        hint.innerHTML = '<strong>Alright dude it\'s enough</strong>';
-        hint.style.display = 'block';
-      } else if (respectCount >= 150) {
-        hint.innerHTML = '<strong>There\'s nothing more to see here</strong>';
-        hint.style.display = 'block';
-      } else if (respectCount >= 200) {
-        hint.innerHTML = '<strong>You\'ve seen everything. Please stop.</strong>';
+      if (respectCount >= 250) {
+        hint.innerHTML = '<strong>Dumbass...</strong>';
         hint.style.display = 'block';
       } else if (respectCount >= 220) {
         hint.innerHTML = '<strong>I warned you</strong>';
         hint.style.display = 'block';
-      } else if (respectCount >= 250) {
-        hint.innerHTML = '<strong>Dumbass...</strong>';
+      } else if (respectCount >= 200) {
+        hint.innerHTML = '<strong>You\'ve seen everything. Please stop.</strong>';
+        hint.style.display = 'block';
+      } else if (respectCount >= 150) {
+        hint.innerHTML = '<strong>There\'s nothing more to see here</strong>';
+        hint.style.display = 'block';
+      } else if (respectCount >= 120) {
+        hint.innerHTML = '<strong>Alright dude it\'s enough</strong>';
+        hint.style.display = 'block';
+      } else if (respectCount >= 100) {
+        hint.innerHTML = '<strong>Damn you really wanted that holo huh...</strong>';
+        hint.style.display = 'block';
+      } else if (respectCount >= 75) {
+        hint.innerHTML = '<strong>You really wanna keep going?</strong>';
+        hint.style.display = 'block';
+      } else if (respectCount >= 67) {
+        hint.innerHTML = '<strong>GG\'s</strong>';
+        hint.style.display = 'block';
+      } else if (respectCount >= 3) {
+        hint.textContent = "What is Mark's favourite number?";
         hint.style.display = 'block';
       } else {
         hint.style.display = 'none';
