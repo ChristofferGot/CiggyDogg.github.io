@@ -266,7 +266,7 @@
       });
     }
 
-    async function createBall(i, customRadius = null, customImage = null) {
+    async function createBall(i, customRadius = null, customImage = null, makeSpecial = false) {
       const imgSrc = customImage || imageFiles[i] || "";
       const radius = customRadius || (i === largeIndex ? 80 : 60);
 
@@ -301,7 +301,7 @@
       }
 
       const ball = Bodies.circle(startX, startY, radius, ballOptions);
-      ball.isSpecial = i === specialIndex;
+      ball.isSpecial = makeSpecial || i === specialIndex;
       ball.originalTexture = imgSrc;
       ball.trailPoints = [];
 
@@ -540,11 +540,13 @@
         const rand = Math.random();
         let customRadius = null;
         let customImage = null;
+        let makeSpecial = false;
         
         // 5% chance for special ball
         if (rand < 0.05) {
           customRadius = 60;
           customImage = specialNewImage;
+          makeSpecial = true;
         }
         // 15% chance for big ball
         else if (rand < 0.20) {
@@ -557,7 +559,7 @@
           customImage = imageFiles[Math.floor(Math.random() * imageFiles.length)];
         }
         
-        await createBall(balls.length, customRadius, customImage);
+        await createBall(balls.length, customRadius, customImage, makeSpecial);
         
         // Give the new ball some initial velocity
         const newBall = balls[balls.length - 1];
