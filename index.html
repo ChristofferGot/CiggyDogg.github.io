@@ -24,6 +24,13 @@
       z-index: 3;
       pointer-events: none;
       display: block;
+      box-shadow: 0 0 20px rgba(255, 252, 232, 0.3);
+      animation: borderGlow 3s ease-in-out infinite;
+    }
+
+    @keyframes borderGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(255, 252, 232, 0.3); }
+      50% { box-shadow: 0 0 40px rgba(255, 252, 232, 0.6); }
     }
 
     #neverForget, #pressF {
@@ -63,6 +70,13 @@
       color: #DD403A;
     }
 
+    #secretHint {
+      font-size: 0.9em;
+      color: #7EC8E3;
+      margin-top: 5px;
+      font-style: italic;
+    }
+
     a {
       position: fixed;
       bottom: 10px;
@@ -73,10 +87,19 @@
       font-size: 1.2em;
       z-index: 5;
       user-select: text;
+      transition: all 0.3s ease;
     }
     a strong {
       color: #7EC8E3;
       cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    a:hover {
+      transform: translateX(-50%) translateY(-3px);
+    }
+    a:hover strong {
+      color: #DD403A;
+      text-shadow: 0 0 10px rgba(221, 64, 58, 0.5);
     }
 
     canvas {
@@ -90,6 +113,73 @@
       display: block;
       background: transparent;
     }
+
+    .top-button {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: #DD403A;
+      color: #fffce8;
+      border: 2px solid #fffce8;
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-size: 1em;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 6;
+      transition: all 0.3s ease;
+      font-family: Arial, sans-serif;
+    }
+
+    .top-button:hover {
+      background: #fffce8;
+      color: #DD403A;
+      transform: scale(1.05);
+    }
+
+    #addStickerBtn {
+      top: 70px;
+    }
+
+    .plus-one {
+      position: fixed;
+      color: #4ade80;
+      font-size: 2em;
+      font-weight: bold;
+      pointer-events: none;
+      z-index: 10;
+      text-shadow: 0 0 10px rgba(74, 222, 128, 0.8);
+      animation: floatUp 1s ease-out forwards;
+    }
+
+    @keyframes floatUp {
+      0% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-100px);
+      }
+    }
+
+    .sparkle {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9;
+      animation: sparkleAnim 0.6s ease-out forwards;
+    }
+
+    @keyframes sparkleAnim {
+      0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(var(--tx), var(--ty)) scale(0);
+      }
+    }
   </style>
 </head>
 <body>
@@ -100,7 +190,13 @@
     <span>#</span>Never<span>Forget</span> <img src="clueless-aware.gif" alt="AWARE" />
   </div>
 
-  <div id="pressF" role="button" tabindex="0">Press <strong>F</strong> to pay respects (<span id="fCount">0</span>)</div>
+  <div id="pressF" role="button" tabindex="0">
+    Press <strong>F</strong> to pay respects (<span id="fCount">0</span>)
+    <div id="secretHint" style="display: none;"></div>
+  </div>
+
+  <button class="top-button" id="resetBtn">Reset Stickers</button>
+  <button class="top-button" id="addStickerBtn">+1 Sticker</button>
 
   <a href="https://guns.lol/chris_got" aria-label="Made by Chris Got link">Made by <strong>Chris Got</strong> →</a>
 
@@ -142,6 +238,7 @@
 
     const balls = [];
     const sound = new Audio(specialSound);
+    const vineBoom = new Audio("Vine Boom.mp3");
     const cw = window.innerWidth;
     const ch = window.innerHeight;
     engine.gravity.y = 1;
@@ -152,6 +249,9 @@
       Bodies.rectangle(cw + 50, ch / 2, 100, ch, { isStatic: true })
     ];
     World.add(world, walls);
+
+    let respectCount = 0;
+    let mac10Spawned = false;
 
     function loadImage(src) {
       return new Promise(res => {
@@ -165,14 +265,13 @@
       });
     }
 
-    async function createBall(i) {
-      const imgSrc = imageFiles[i] || "";
-      const radius = i === largeIndex ? 80 : 60;
+    async function createBall(i, customRadius = null, customImage = null) {
+      const imgSrc = customImage || imageFiles[i] || "";
+      const radius = customRadius || (i === largeIndex ? 80 : 60);
 
       const startX = Math.random() * (cw - 2 * radius) + radius;
       const startY = Math.random() * (ch / 2) + radius;
 
-      // First, try to load the image
       let ballOptions = {
         restitution: RESTITUTION,
         frictionAir: FRICTION_AIR,
@@ -186,9 +285,12 @@
       if (imgSrc) {
         const img = await loadImage(imgSrc);
         if (img) {
-          // Only add sprite if image loaded successfully
-          // Scale up to 1.8x to fill the ball and reduce deadspace
-          const scale = ((radius * 2) / 360) * 1.8;
+          let scale;
+          if (customImage === "Mac10Heat.png") {
+            scale = (radius * 2) / 501 * 1.8;
+          } else {
+            scale = ((radius * 2) / 360) * 1.8;
+          }
           ballOptions.render.sprite = {
             texture: imgSrc,
             xScale: scale,
@@ -200,6 +302,7 @@
       const ball = Bodies.circle(startX, startY, radius, ballOptions);
       ball.isSpecial = i === specialIndex;
       ball.originalTexture = imgSrc;
+      ball.trailPoints = [];
 
       World.add(world, ball);
       balls.push(ball);
@@ -210,6 +313,134 @@
     async function initBalls() {
       for (let i = 0; i < NUM_BALLS; i++) {
         await createBall(i);
+      }
+    }
+
+    function createSparkles(x, y) {
+      const colors = ['#FFD700', '#FFA500', '#FF69B4', '#00CED1', '#7EC8E3'];
+      for (let i = 0; i < 8; i++) {
+        const sparkle = document.createElement('div');
+        sparkle.className = 'sparkle';
+        sparkle.textContent = '✨';
+        sparkle.style.left = x + 'px';
+        sparkle.style.top = y + 'px';
+        sparkle.style.color = colors[Math.floor(Math.random() * colors.length)];
+        sparkle.style.fontSize = (Math.random() * 20 + 15) + 'px';
+        
+        const tx = (Math.random() - 0.5) * 150;
+        const ty = (Math.random() - 0.5) * 150;
+        sparkle.style.setProperty('--tx', tx + 'px');
+        sparkle.style.setProperty('--ty', ty + 'px');
+        
+        document.body.appendChild(sparkle);
+        setTimeout(() => sparkle.remove(), 600);
+      }
+    }
+
+    function showPlusOne(x, y) {
+      const plusOne = document.createElement('div');
+      plusOne.className = 'plus-one';
+      plusOne.textContent = '+1';
+      plusOne.style.left = x + 'px';
+      plusOne.style.top = y + 'px';
+      document.body.appendChild(plusOne);
+      setTimeout(() => plusOne.remove(), 1000);
+    }
+
+    function updateRespectText() {
+      const hint = document.getElementById('secretHint');
+      const pressF = document.getElementById('pressF');
+      
+      if (respectCount === 3) {
+        hint.textContent = "What is Mark's favourite number?";
+        hint.style.display = 'block';
+      } else if (respectCount >= 250) {
+        pressF.innerHTML = '<strong>Dumbass...</strong>';
+        hint.style.display = 'none';
+      } else if (respectCount >= 220) {
+        pressF.innerHTML = '<strong>I warned you</strong>';
+        hint.style.display = 'none';
+      } else if (respectCount >= 200) {
+        pressF.innerHTML = '<strong>You\'ve seen everything. Please stop.</strong>';
+        hint.style.display = 'none';
+      } else if (respectCount >= 150) {
+        pressF.innerHTML = '<strong>There\'s nothing more to see here</strong>';
+        hint.style.display = 'none';
+      } else if (respectCount >= 120) {
+        pressF.innerHTML = '<strong>Alright dude it\'s enough</strong>';
+        hint.style.display = 'none';
+      } else if (respectCount >= 100) {
+        pressF.innerHTML = '<strong>Damn you really wanted that holo huh...</strong>';
+        hint.style.display = 'none';
+      } else if (respectCount >= 75) {
+        pressF.innerHTML = '<strong>You really wanna keep going?</strong>';
+        hint.style.display = 'none';
+      } else if (respectCount >= 67) {
+        pressF.innerHTML = '<strong>GG\'s</strong>';
+        hint.style.display = 'none';
+      } else {
+        pressF.innerHTML = 'Press <strong>F</strong> to pay respects (<span id="fCount">' + respectCount + '</span>)';
+        if (respectCount !== 3) {
+          hint.style.display = 'none';
+        }
+      }
+    }
+
+    async function updateRespect(clickX, clickY) {
+      respectCount++;
+      updateRespectText();
+      
+      createSparkles(clickX, clickY);
+      showPlusOne(clickX, clickY);
+
+      if (respectCount === 67 && !mac10Spawned) {
+        mac10Spawned = true;
+        vineBoom.play().catch(() => {});
+        await createBall(0, 120, "Mac10Heat.png");
+      }
+
+      if (respectCount === 250) {
+        setTimeout(() => {
+          window.open('https://www.youtube.com/watch?v=dQw4w9WgXcQ', '_blank');
+        }, 1000);
+      }
+    }
+
+    function drawTrails(context) {
+      for (const ball of balls) {
+        const speed = Math.sqrt(ball.velocity.x ** 2 + ball.velocity.y ** 2);
+        
+        if (speed > 5) {
+          ball.trailPoints.push({
+            x: ball.position.x,
+            y: ball.position.y,
+            alpha: 1
+          });
+          
+          if (ball.trailPoints.length > 15) {
+            ball.trailPoints.shift();
+          }
+        } else {
+          ball.trailPoints = [];
+        }
+
+        for (let i = 0; i < ball.trailPoints.length; i++) {
+          const point = ball.trailPoints[i];
+          const size = (i / ball.trailPoints.length) * ball.circleRadius * 0.8;
+          point.alpha -= 0.05;
+
+          if (point.alpha > 0) {
+            const gradient = context.createRadialGradient(point.x, point.y, 0, point.x, point.y, size);
+            gradient.addColorStop(0, `rgba(126, 200, 227, ${point.alpha * 0.6})`);
+            gradient.addColorStop(0.5, `rgba(221, 64, 58, ${point.alpha * 0.4})`);
+            gradient.addColorStop(1, `rgba(255, 215, 0, ${point.alpha * 0.2})`);
+
+            context.beginPath();
+            context.arc(point.x, point.y, size, 0, Math.PI * 2);
+            context.fillStyle = gradient;
+            context.fill();
+          }
+        }
       }
     }
 
@@ -228,7 +459,7 @@
         if (body && body.isSpecial) {
           if (specialSound) {
             sound.currentTime = 0;
-            sound.play().catch(() => {}); // Ignore audio errors
+            sound.play().catch(() => {});
           }
           if (specialNewImage) {
             loadImage(specialNewImage).then(img => {
@@ -244,6 +475,10 @@
         }
       });
 
+      Events.on(render, 'afterRender', () => {
+        drawTrails(render.context);
+      });
+
       Render.run(render);
       const runner = Runner.create();
       Runner.run(runner, engine);
@@ -252,19 +487,35 @@
         Body.setVelocity(b, { x: (Math.random() - 0.5) * 10, y: Math.random() * -10 });
       }
 
-      // Use in-memory storage instead of localStorage
-      let respectCount = 0;
       const fCount = document.getElementById("fCount");
       fCount.textContent = respectCount;
 
-      function updateRespect() {
-        respectCount++;
-        fCount.textContent = respectCount;
-      }
+      document.getElementById("pressF").addEventListener("click", (e) => {
+        updateRespect(e.clientX, e.clientY);
+      });
 
-      document.getElementById("pressF").addEventListener("click", updateRespect);
       document.addEventListener("keydown", e => {
-        if (e.key.toLowerCase() === "f") updateRespect();
+        if (e.key.toLowerCase() === "f") {
+          const rect = document.getElementById("pressF").getBoundingClientRect();
+          updateRespect(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        }
+      });
+
+      document.getElementById("resetBtn").addEventListener("click", () => {
+        for (const ball of balls) {
+          Body.setPosition(ball, {
+            x: Math.random() * (cw - 2 * ball.circleRadius) + ball.circleRadius,
+            y: Math.random() * (ch / 2) + ball.circleRadius
+          });
+          Body.setVelocity(ball, { x: (Math.random() - 0.5) * 10, y: Math.random() * -10 });
+          ball.trailPoints = [];
+        }
+      });
+
+      document.getElementById("addStickerBtn").addEventListener("click", async () => {
+        const randomIndex = Math.floor(Math.random() * imageFiles.length);
+        const newBall = await createBall(randomIndex);
+        Body.setVelocity(newBall, { x: (Math.random() - 0.5) * 15, y: Math.random() * -15 });
       });
 
       function positionTextBelowImage() {
@@ -297,7 +548,6 @@
       render.options.width = w;
       render.options.height = h;
 
-      // Remove old walls and add new ones
       World.remove(world, walls);
       walls = [
         Bodies.rectangle(w / 2, h + 50, w, 100, { isStatic: true }),
