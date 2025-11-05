@@ -550,12 +550,16 @@
         // 15% chance for big ball
         else if (rand < 0.20) {
           customRadius = 80;
-          customImage = imageFiles[Math.floor(Math.random() * imageFiles.length)];
+          // Filter out the special ball image
+          const normalImages = imageFiles.filter((img, idx) => idx !== specialIndex);
+          customImage = normalImages[Math.floor(Math.random() * normalImages.length)];
         }
         // 80% chance for regular ball
         else {
           customRadius = 60;
-          customImage = imageFiles[Math.floor(Math.random() * imageFiles.length)];
+          // Filter out the special ball image
+          const normalImages = imageFiles.filter((img, idx) => idx !== specialIndex);
+          customImage = normalImages[Math.floor(Math.random() * normalImages.length)];
         }
         
         await createBall(balls.length, customRadius, customImage, makeSpecial);
