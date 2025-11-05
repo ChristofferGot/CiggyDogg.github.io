@@ -12,7 +12,6 @@
       color: #fffce8;
       text-align: center;
       user-select: none;
-      position: relative;
     }
 
     #mainImage {
@@ -88,7 +87,6 @@
       height: 100%;
       z-index: 4;
       display: block;
-      background: transparent;
     }
   </style>
 </head>
@@ -141,6 +139,7 @@
     const FRICTION_AIR = 0.02;
 
     const balls = [];
+    const images = [];
     const sound = new Audio(specialSound);
     const cw = window.innerWidth;
     const ch = window.innerHeight;
@@ -156,7 +155,10 @@
     function loadImage(src) {
       return new Promise(res => {
         const img = new Image();
-        img.onload = () => res(img);
+        img.onload = () => {
+          console.log("Loaded image:", src, img.width, img.height);
+          res(img);
+        };
         img.onerror = () => {
           console.warn("Failed to load image:", src);
           res(null);
@@ -165,23 +167,25 @@
       });
     }
 
-    // THIS function properly loads the image and assigns the sprite after loading!
-    async function createBall(i) {
-      const imgSrc = imageFiles[i] || "";
-      const radius = i === largeIndex ? 80 : 60;
+    async function initBalls() {
+      for (let i = 0; i < NUM_BALLS; i++) {
+        const imgSrc = imageFiles[i] || "";
+        const img = imgSrc ? await loadImage(imgSrc) : null;
+        images.push(img);
 
-      const startX = Math.random() * (cw - 2 * radius) + radius;
-      const startY = Math.random() * (ch / 2) + radius;
+        const radius = i === largeIndex ? 80 : 60;
 
-      const ball = Bodies.circle(startX, startY, radius, {
-        restitution: RESTITUTION,
-        frictionAir: FRICTION_AIR,
-        render: { fillStyle: "#fffce8" }
-      });
-      ball.isSpecial = i === specialIndex;
+        const ball = Bodies.circle(Math.random() * cw, Math.random() * -500, radius, {
+          restitution: RESTITUTION,
+          frictionAir: FRICTION_AIR,
+          render: { fillStyle: "#fffce8" } // temporary placeholder
+        });
 
-      if (imgSrc) {
-        const img = await loadImage(imgSrc);
+        ball.isSpecial = i === specialIndex;
+        balls.push(ball);
+        World.add(world, ball);
+
+        // Assign render.sprite AFTER adding ball to world
         if (img) {
           ball.render.sprite = {
             texture: imgSrc,
@@ -189,17 +193,6 @@
             yScale: (radius * 2) / img.height
           };
         }
-      }
-
-      World.add(world, ball);
-      balls.push(ball);
-
-      return ball;
-    }
-
-    async function initBalls() {
-      for (let i = 0; i < NUM_BALLS; i++) {
-        await createBall(i);
       }
     }
 
@@ -216,20 +209,8 @@
       Events.on(mouseConstraint, "startdrag", e => {
         const body = e.body;
         if (body && body.isSpecial) {
-          if (specialSound) {
-            sound.currentTime = 0;
-            sound.play();
-          }
-          if (specialNewImage) {
-            loadImage(specialNewImage).then(img => {
-              if (img) {
-                const radius = body.circleRadius;
-                body.render.sprite.texture = specialNewImage;
-                body.render.sprite.xScale = (radius * 2) / img.width;
-                body.render.sprite.yScale = (radius * 2) / img.height;
-              }
-            });
-          }
+          if (specialSound) sound.play();
+          if (specialNewImage) body.render.sprite.texture = specialNewImage;
         }
       });
 
@@ -285,13 +266,6 @@
       render.canvas.style.height = h + "px";
       render.options.width = w;
       render.options.height = h;
-
-      // Remove old walls (only static ones) and add new ones
-      World.remove(world, walls);
-      walls[0] = Bodies.rectangle(w / 2, h + 50, w, 100, { isStatic: true });
-      walls[1] = Bodies.rectangle(-50, h / 2, 100, h, { isStatic: true });
-      walls[2] = Bodies.rectangle(w + 50, h / 2, 100, h, { isStatic: true });
-      World.add(world, walls);
     });
   </script>
 </body>
