@@ -3,41 +3,55 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My Site</title>
+  <title>TITAN HOLO</title>
   <style>
     body {
       margin: 0;
       overflow: hidden;
-      background-color: #b8b42d;
+      background-color: #3E363F;
       font-family: Arial, sans-serif;
       color: #fffce8;
       text-align: center;
     }
 
     #mainImage {
-      width: 45%;
+      width: 58%;
       border: 10px solid #fffce8;
       border-radius: 20px;
-      margin-top: 40px;
+      margin-top: 60px;
+      position: relative;
+      z-index: 2;
     }
 
     a {
-      display: block;
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
       color: #fffce8;
       text-decoration: none;
-      margin-top: 30px;
       font-size: 1.2em;
+      z-index: 3;
+    }
+
+    a strong {
+      color: #7EC8E3;
     }
 
     #neverForget {
       position: absolute;
-      top: 60px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 3em;
-      font-weight: bold;
       color: #fffce8;
-      text-shadow: 2px 2px 0 #00000055;
+      font-size: 3.5em;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+      text-align: left;
+      left: calc(50% - 28%);
+      top: calc(60% + 10px);
+      z-index: 3;
+    }
+
+    #neverForget span {
+      color: #DD403A;
     }
 
     #neverForget img {
@@ -49,26 +63,39 @@
 
     #pressF {
       position: absolute;
-      top: 120px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 1.2em;
+      top: calc(60% + 100px);
+      left: calc(50% - 28%);
+      text-align: left;
+      font-size: 1.5em;
       color: #fffce8;
       cursor: pointer;
+      z-index: 3;
+    }
+
+    #pressF strong {
+      color: #DD403A;
     }
 
     canvas {
-      display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
     }
   </style>
 </head>
 <body>
+  <img id="mainImage" src="titan-holo.png" alt="TITAN HOLO">
+
   <div id="neverForget">
-    #NeverForget <img src="clueless-aware.gif" alt="AWARE">
+    <span>#</span>Never<span>Forget</span> <img src="clueless-aware.gif" alt="AWARE">
   </div>
+
   <div id="pressF">Press <strong>F</strong> to pay respects (<span id="fCount">0</span>)</div>
 
-  <img id="mainImage" src="titan-holo.png" alt="TITAN HOLO">
   <a href="https://guns.lol/chris_got">Made by <strong>Chris Got</strong> →</a>
 
   <canvas id="physicsCanvas"></canvas>
@@ -91,42 +118,33 @@
       }
     });
 
-    // ------------------------------------------------------------
-    // CONFIG — add your filenames and assets here
-    // ------------------------------------------------------------
+    // CONFIG
     const imageFiles = [
-      "360fx360f1.png", "360fx360f2.png", "360fx360f8.png", "360fx360f3.png", "360fx360f4.png", "360fx360f5.png", "360fx360f6.png", "360fx360f7.png", "360fx360f9.png", "360fx360f01.png", "360fx360f7.png", "360fx360f7.png", "360fx360f7.png"
-    ]; // ← fill in your 13 PNG filenames (e.g. "ball1.png", "ball2.png", etc.)
+      "360fx360f1.png", "360fx360f2.png", "360fx360f8.png", "360fx360f3.png", "360fx360f4.png", "360fx360f5.png", 
+      "360fx360f6.png", "360fx360f7.png", "360fx360f9.png", "360fx360f01.png", "360fx360f7.png", "360fx360f7.png", "360fx360f7.png"
+    ];
 
-    const specialIndex = 3;        // index of the special ball (plays sound + swaps image)
-    const specialNewImage = "360fx360f7.png";    // new PNG after grab (e.g. "changed.png")
-    const specialSound = "Quick Fart.mp3";       // sound file, e.g. "sound.mp3"
+    const specialIndex = 3;
+    const specialNewImage = "360fx360f7.png";
+    const specialSound = "Quick Fart.mp3";
+    const largeIndex = 8;
 
-    const largeIndex = 8;          // index of the larger ball (different from special one)
     const NUM_BALLS = 13;
     const TARGET_IMG_SIZE = 360;
     const RESTITUTION = 0.85;
     const FRICTION_AIR = 0.995;
-    const GRAVITY = 1500;
 
-    // ------------------------------------------------------------
-    // INIT
-    // ------------------------------------------------------------
     const balls = [];
     const images = [];
     const sound = new Audio(specialSound);
-    let respectCount = 0;
-
     const cw = window.innerWidth;
     const ch = window.innerHeight;
     canvas.width = cw;
     canvas.height = ch;
     engine.gravity.y = 1;
 
-    // Walls
     const walls = [
       Bodies.rectangle(cw / 2, ch + 50, cw, 100, { isStatic: true }),
-      Bodies.rectangle(cw / 2, -50, cw, 100, { isStatic: true }),
       Bodies.rectangle(-50, ch / 2, 100, ch, { isStatic: true }),
       Bodies.rectangle(cw + 50, ch / 2, 100, ch, { isStatic: true })
     ];
@@ -151,6 +169,7 @@
           restitution: RESTITUTION,
           frictionAir: 0.02
         });
+
         ball.render.sprite = img
           ? { texture: imgSrc, xScale: (radius * 2) / img.width, yScale: (radius * 2) / img.height }
           : { fillStyle: "#fffce8" };
@@ -171,14 +190,12 @@
 
       World.add(world, mouseConstraint);
 
-      // Sound + Image change logic
+      // Sound + Image change
       Events.on(mouseConstraint, "startdrag", e => {
         const body = e.body;
         if (body && body.isSpecial) {
           if (specialSound) sound.play();
-          if (specialNewImage) {
-            body.render.sprite.texture = specialNewImage;
-          }
+          if (specialNewImage) body.render.sprite.texture = specialNewImage;
         }
       });
 
@@ -186,18 +203,20 @@
       const runner = Runner.create();
       Runner.run(runner, engine);
 
-      // Bouncing animation start
+      // initial bounce
       for (const b of balls) {
-        Body.setVelocity(b, {
-          x: (Math.random() - 0.5) * 20,
-          y: (Math.random() - 0.5) * 20
-        });
+        Body.setVelocity(b, { x: (Math.random() - 0.5) * 20, y: Math.random() * -20 });
       }
 
-      // Respect counter
+      // Respect counter (persistent)
+      let respectCount = parseInt(localStorage.getItem("respectCount") || "0");
+      const fCount = document.getElementById("fCount");
+      fCount.textContent = respectCount;
+
       function updateRespect() {
         respectCount++;
-        document.getElementById("fCount").textContent = respectCount;
+        localStorage.setItem("respectCount", respectCount);
+        fCount.textContent = respectCount;
       }
 
       document.getElementById("pressF").addEventListener("click", updateRespect);
