@@ -1,169 +1,215 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Ball Physics</title>
-<style>
-  body {
-    margin: 0;
-    overflow: hidden;
-    background: #000;
-  }
-  canvas {
-    display: block;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Site</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #b8b42d;
+      font-family: Arial, sans-serif;
+      color: #fffce8;
+      text-align: center;
+    }
+
+    #mainImage {
+      width: 45%;
+      border: 10px solid #fffce8;
+      border-radius: 20px;
+      margin-top: 40px;
+    }
+
+    a {
+      display: block;
+      color: #fffce8;
+      text-decoration: none;
+      margin-top: 30px;
+      font-size: 1.2em;
+    }
+
+    #neverForget {
+      position: absolute;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 3em;
+      font-weight: bold;
+      color: #fffce8;
+      text-shadow: 2px 2px 0 #00000055;
+    }
+
+    #neverForget img {
+      width: 64px;
+      height: 64px;
+      vertical-align: middle;
+      margin-left: 10px;
+    }
+
+    #pressF {
+      position: absolute;
+      top: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.2em;
+      color: #fffce8;
+      cursor: pointer;
+    }
+
+    canvas {
+      display: block;
+    }
+  </style>
 </head>
 <body>
-<canvas id="canvas"></canvas>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
-<script>
-  // ------------------------------------------------------------
-  // CONFIG — add your filenames and assets here
-  // ------------------------------------------------------------
-  const imageFiles = [
-    "", "", "", "", "", "", "", "", "", "", "", "", ""
-  ]; // fill with 13 png filenames (e.g. "ball1.png", etc.)
+  <div id="neverForget">
+    #NeverForget <img src="" alt="emote here">
+  </div>
+  <div id="pressF">Press <strong>F</strong> to pay respects (<span id="fCount">0</span>)</div>
 
-  const specialIndex = 3;        // index of the special ball (plays sound + swaps image)
-  const specialNewImage = "";    // new PNG after grab (e.g. "changed.png")
-  const specialSound = "";       // sound file (e.g. "sound.mp3")
+  <img id="mainImage" src="titan-holo.png" alt="TITAN HOLO">
+  <a href="https://guns.lol/chris_got">Website by <strong>Chris Got</strong> →</a>
 
-  const largeIndex = 8;          // index of the large ball (different from special one)
-  const NUM_BALLS = 13;
-  const TARGET_IMG_SIZE = 360;
-  const RESTITUTION = 0.85;
-  const FRICTION_AIR = 0.995;
-  const GRAVITY = 1500;
+  <canvas id="physicsCanvas"></canvas>
 
-  const { Engine, Render, Runner, Bodies, Composite, Mouse, MouseConstraint, Events } = Matter;
+  <script src="https://cdn.jsdelivr.net/npm/matter-js@0.19.0/build/matter.min.js"></script>
+  <script>
+    const { Engine, Render, Runner, World, Bodies, Body, Events, Mouse, MouseConstraint } = Matter;
 
-  const engine = Engine.create();
-  const world = engine.world;
+    const canvas = document.getElementById("physicsCanvas");
+    const engine = Engine.create();
+    const world = engine.world;
+    const render = Render.create({
+      canvas: canvas,
+      engine: engine,
+      options: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        wireframes: false,
+        background: "transparent"
+      }
+    });
 
-  const canvas = document.getElementById("canvas");
-  const ctx = canvas.getContext("2d");
+    // ------------------------------------------------------------
+    // CONFIG — add your filenames and assets here
+    // ------------------------------------------------------------
+    const imageFiles = [
+      "", "", "", "", "", "", "", "", "", "", "", "", ""
+    ]; // ← fill in your 13 PNG filenames (e.g. "ball1.png", "ball2.png", etc.)
 
-  function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-  }
-  window.addEventListener("resize", resize);
-  resize();
+    const specialIndex = 3;        // index of the special ball (plays sound + swaps image)
+    const specialNewImage = "";    // new PNG after grab (e.g. "changed.png")
+    const specialSound = "";       // sound file, e.g. "sound.mp3"
 
-  const ground = Bodies.rectangle(window.innerWidth/2, window.innerHeight + 50, window.innerWidth, 100, { isStatic: true });
-  Composite.add(world, ground);
+    const largeIndex = 8;          // index of the larger ball (different from special one)
+    const NUM_BALLS = 13;
+    const TARGET_IMG_SIZE = 360;
+    const RESTITUTION = 0.85;
+    const FRICTION_AIR = 0.995;
+    const GRAVITY = 1500;
 
-  let balls = [];
+    // ------------------------------------------------------------
+    // INIT
+    // ------------------------------------------------------------
+    const balls = [];
+    const images = [];
+    const sound = new Audio(specialSound);
+    let respectCount = 0;
 
-  function initBalls() {
-    balls = [];
-    const scaleFactor = window.innerWidth / 1920;
+    const cw = window.innerWidth;
+    const ch = window.innerHeight;
+    canvas.width = cw;
+    canvas.height = ch;
+    engine.gravity.y = 1;
 
-    for (let i = 0; i < NUM_BALLS; i++) {
-      const isLarge = (i === largeIndex);
-      const img = new Image();
-      img.src = imageFiles[i] || "";
-      const radius = isLarge ? TARGET_IMG_SIZE * 0.6 * scaleFactor : TARGET_IMG_SIZE * 0.4 * scaleFactor;
+    // Walls
+    const walls = [
+      Bodies.rectangle(cw / 2, ch + 50, cw, 100, { isStatic: true }),
+      Bodies.rectangle(cw / 2, -50, cw, 100, { isStatic: true }),
+      Bodies.rectangle(-50, ch / 2, 100, ch, { isStatic: true }),
+      Bodies.rectangle(cw + 50, ch / 2, 100, ch, { isStatic: true })
+    ];
+    World.add(world, walls);
 
-      const ball = Bodies.circle(
-        Math.random() * window.innerWidth,
-        Math.random() * window.innerHeight / 2,
-        radius / 2,
-        {
+    function loadImage(src) {
+      return new Promise(res => {
+        const img = new Image();
+        img.onload = () => res(img);
+        img.src = src;
+      });
+    }
+
+    async function initBalls() {
+      for (let i = 0; i < NUM_BALLS; i++) {
+        const imgSrc = imageFiles[i] || "";
+        const img = imgSrc ? await loadImage(imgSrc) : null;
+        images.push(img);
+
+        const radius = i === largeIndex ? TARGET_IMG_SIZE * 0.675 / 2 : TARGET_IMG_SIZE / 2;
+        const ball = Bodies.circle(Math.random() * cw, Math.random() * -500, radius, {
           restitution: RESTITUTION,
-          frictionAir: 1 - FRICTION_AIR,
-          render: { sprite: { texture: img.src } }
-        }
-      );
+          frictionAir: 0.02
+        });
+        ball.render.sprite = img
+          ? { texture: imgSrc, xScale: (radius * 2) / img.width, yScale: (radius * 2) / img.height }
+          : { fillStyle: "#fffce8" };
 
-      ball.image = img;
-      ball.radius = radius / 2;
-      ball.isSpecial = (i === specialIndex);
-      ball.hasChanged = false;
-      balls.push(ball);
-    }
-    Composite.add(world, balls);
-  }
-
-  initBalls();
-
-  const mouse = Mouse.create(canvas);
-  const mouseConstraint = MouseConstraint.create(engine, {
-    mouse: mouse,
-    constraint: {
-      stiffness: 0.2,
-      render: { visible: false }
-    }
-  });
-  Composite.add(world, mouseConstraint);
-
-  const render = Render.create({
-    engine: engine,
-    canvas: canvas,
-    options: {
-      width: window.innerWidth,
-      height: window.innerHeight,
-      wireframes: false,
-      background: 'transparent'
-    }
-  });
-
-  Render.run(render);
-  const runner = Runner.create();
-  Runner.run(runner, engine);
-
-  Events.on(engine, "afterUpdate", () => {
-    for (let ball of balls) {
-      if (ball.position.y - ball.radius > window.innerHeight) {
-        Matter.Body.setPosition(ball, { x: Math.random() * window.innerWidth, y: -100 });
-        Matter.Body.setVelocity(ball, { x: 0, y: 0 });
+        ball.isSpecial = i === specialIndex;
+        balls.push(ball);
       }
-    }
-  });
 
-  Events.on(mouseConstraint, "mousedown", (event) => {
-    const mousePosition = event.mouse.position;
-    for (let ball of balls) {
-      const dx = ball.position.x - mousePosition.x;
-      const dy = ball.position.y - mousePosition.y;
-      if (Math.sqrt(dx * dx + dy * dy) <= ball.radius) {
-        if (ball.isSpecial && !ball.hasChanged) {
-          ball.hasChanged = true;
-          if (specialSound) {
-            const audio = new Audio(specialSound);
-            audio.play().catch(()=>{});
-          }
+      World.add(world, balls);
+    }
+
+    initBalls().then(() => {
+      const mouse = Mouse.create(render.canvas);
+      const mouseConstraint = MouseConstraint.create(engine, {
+        mouse: mouse,
+        constraint: { stiffness: 0.2, render: { visible: false } }
+      });
+
+      World.add(world, mouseConstraint);
+
+      // Sound + Image change logic
+      Events.on(mouseConstraint, "startdrag", e => {
+        const body = e.body;
+        if (body && body.isSpecial) {
+          if (specialSound) sound.play();
           if (specialNewImage) {
-            ball.image.src = specialNewImage;
+            body.render.sprite.texture = specialNewImage;
           }
         }
-      }
-    }
-  });
+      });
 
-  (function renderLoop() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (let ball of balls) {
-      const x = ball.position.x;
-      const y = ball.position.y;
-      const angle = ball.angle;
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(angle);
-      if (ball.image.complete && ball.image.src) {
-        ctx.drawImage(ball.image, -ball.radius, -ball.radius, ball.radius * 2, ball.radius * 2);
-      } else {
-        ctx.beginPath();
-        ctx.arc(0, 0, ball.radius, 0, Math.PI * 2);
-        ctx.fillStyle = "white";
-        ctx.fill();
+      Render.run(render);
+      const runner = Runner.create();
+      Runner.run(runner, engine);
+
+      // Bouncing animation start
+      for (const b of balls) {
+        Body.setVelocity(b, {
+          x: (Math.random() - 0.5) * 20,
+          y: (Math.random() - 0.5) * 20
+        });
       }
-      ctx.restore();
-    }
-    requestAnimationFrame(renderLoop);
-  })();
-</script>
+
+      // Respect counter
+      function updateRespect() {
+        respectCount++;
+        document.getElementById("fCount").textContent = respectCount;
+      }
+
+      document.getElementById("pressF").addEventListener("click", updateRespect);
+      document.addEventListener("keydown", e => {
+        if (e.key.toLowerCase() === "f") updateRespect();
+      });
+    });
+
+    window.addEventListener("resize", () => {
+      render.canvas.width = window.innerWidth;
+      render.canvas.height = window.innerHeight;
+    });
+  </script>
 </body>
 </html>
