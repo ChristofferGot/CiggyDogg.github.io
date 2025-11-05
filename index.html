@@ -125,7 +125,6 @@
       }
     });
 
-    // Preserved your exact array with duplicates as requested
     const imageFiles = [
       "360fx360f1.png", "360fx360f2.png", "360fx360f8.png", "360fx360f3.png",
       "360fx360f4.png", "360fx360f5.png", "360fx360f6.png", "360fx360f.png",
@@ -142,7 +141,6 @@
     const FRICTION_AIR = 0.02;
 
     const balls = [];
-    const images = [];
     const sound = new Audio(specialSound);
     const cw = window.innerWidth;
     const ch = window.innerHeight;
@@ -167,28 +165,23 @@
       });
     }
 
-    async function initBalls() {
-      for (let i = 0; i < NUM_BALLS; i++) {
-        const imgSrc = imageFiles[i] || "";
-        const img = imgSrc ? await loadImage(imgSrc) : null;
-        images.push(img);
+    // THIS function properly loads the image and assigns the sprite after loading!
+    async function createBall(i) {
+      const imgSrc = imageFiles[i] || "";
+      const radius = i === largeIndex ? 80 : 60;
 
-        const radius = i === largeIndex ? 80 : 60;
+      const startX = Math.random() * (cw - 2 * radius) + radius;
+      const startY = Math.random() * (ch / 2) + radius;
 
-        // Start balls within visible area (not above)
-        const startX = Math.random() * (cw - 2 * radius) + radius;
-        const startY = Math.random() * (ch / 2) + radius;
+      const ball = Bodies.circle(startX, startY, radius, {
+        restitution: RESTITUTION,
+        frictionAir: FRICTION_AIR,
+        render: { fillStyle: "#fffce8" }
+      });
+      ball.isSpecial = i === specialIndex;
 
-        const ball = Bodies.circle(startX, startY, radius, {
-          restitution: RESTITUTION,
-          frictionAir: FRICTION_AIR,
-          render: { fillStyle: "#fffce8" }
-        });
-
-        ball.isSpecial = i === specialIndex;
-        balls.push(ball);
-        World.add(world, ball);
-
+      if (imgSrc) {
+        const img = await loadImage(imgSrc);
         if (img) {
           ball.render.sprite = {
             texture: imgSrc,
@@ -196,6 +189,17 @@
             yScale: (radius * 2) / img.height
           };
         }
+      }
+
+      World.add(world, ball);
+      balls.push(ball);
+
+      return ball;
+    }
+
+    async function initBalls() {
+      for (let i = 0; i < NUM_BALLS; i++) {
+        await createBall(i);
       }
     }
 
@@ -217,13 +221,12 @@
             sound.play();
           }
           if (specialNewImage) {
-            body.render.sprite.texture = specialNewImage;
             loadImage(specialNewImage).then(img => {
               if (img) {
                 const radius = body.circleRadius;
+                body.render.sprite.texture = specialNewImage;
                 body.render.sprite.xScale = (radius * 2) / img.width;
                 body.render.sprite.yScale = (radius * 2) / img.height;
-                Render.lookAt(render, body);
               }
             });
           }
@@ -283,13 +286,11 @@
       render.options.width = w;
       render.options.height = h;
 
-      // Remove old walls and add new ones to fit new window size
-      World.remove(world, world.bodies.filter(b => b.isStatic));
-      const walls = [
-        Bodies.rectangle(w / 2, h + 50, w, 100, { isStatic: true }),
-        Bodies.rectangle(-50, h / 2, 100, h, { isStatic: true }),
-        Bodies.rectangle(w + 50, h / 2, 100, h, { isStatic: true })
-      ];
+      // Remove old walls (only static ones) and add new ones
+      World.remove(world, walls);
+      walls[0] = Bodies.rectangle(w / 2, h + 50, w, 100, { isStatic: true });
+      walls[1] = Bodies.rectangle(-50, h / 2, 100, h, { isStatic: true });
+      walls[2] = Bodies.rectangle(w + 50, h / 2, 100, h, { isStatic: true });
       World.add(world, walls);
     });
   </script>
