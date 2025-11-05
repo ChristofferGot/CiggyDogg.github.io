@@ -21,7 +21,7 @@
       margin: 60px auto 0 auto;
       position: relative;
       z-index: 3;
-      pointer-events: none; /* So mouse events pass through to canvas */
+      pointer-events: none;
       display: block;
     }
 
@@ -82,10 +82,10 @@
       position: fixed;
       top: 0;
       left: 0;
-      pointer-events: auto; /* enable interaction */
+      pointer-events: auto;
       width: 100%;
       height: 100%;
-      z-index: 4; /* above mainImage but below link */
+      z-index: 4;
       display: block;
     }
   </style>
@@ -145,7 +145,6 @@
     const ch = window.innerHeight;
     engine.gravity.y = 1;
 
-    // Static walls around edges
     const walls = [
       Bodies.rectangle(cw / 2, ch + 50, cw, 100, { isStatic: true }),
       Bodies.rectangle(-50, ch / 2, 100, ch, { isStatic: true }),
@@ -156,7 +155,10 @@
     function loadImage(src) {
       return new Promise(res => {
         const img = new Image();
-        img.onload = () => res(img);
+        img.onload = () => {
+          console.log("Loaded image:", src, img.width, img.height);
+          res(img);
+        };
         img.onerror = () => {
           console.warn("Failed to load image:", src);
           res(null);
@@ -176,21 +178,27 @@
         const ball = Bodies.circle(Math.random() * cw, Math.random() * -500, radius, {
           restitution: RESTITUTION,
           frictionAir: FRICTION_AIR,
-          render: img
-            ? { texture: imgSrc, xScale: (radius * 2) / img.width, yScale: (radius * 2) / img.height }
-            : { fillStyle: "#fffce8" }
+          render: { fillStyle: "#fffce8" } // temporary placeholder
         });
 
         ball.isSpecial = i === specialIndex;
         balls.push(ball);
+        World.add(world, ball);
+
+        // Assign render.sprite AFTER adding ball to world
+        if (img) {
+          ball.render.sprite = {
+            texture: imgSrc,
+            xScale: (radius * 2) / img.width,
+            yScale: (radius * 2) / img.height
+          };
+        }
       }
-      World.add(world, balls);
     }
 
     async function start() {
       await initBalls();
 
-      // Mouse interaction enabled (balls are draggable)
       const mouse = Mouse.create(render.canvas);
       const mouseConstraint = MouseConstraint.create(engine, {
         mouse: mouse,
@@ -198,7 +206,6 @@
       });
       World.add(world, mouseConstraint);
 
-      // Play sound and swap image when dragging special ball
       Events.on(mouseConstraint, "startdrag", e => {
         const body = e.body;
         if (body && body.isSpecial) {
@@ -211,12 +218,10 @@
       const runner = Runner.create();
       Runner.run(runner, engine);
 
-      // Initial bounce velocity
       for (const b of balls) {
         Body.setVelocity(b, { x: (Math.random() - 0.5) * 10, y: Math.random() * -10 });
       }
 
-      // Respect counter persistent
       let respectCount = parseInt(localStorage.getItem("respectCount") || "0");
       const fCount = document.getElementById("fCount");
       fCount.textContent = respectCount;
@@ -232,14 +237,13 @@
         if (e.key.toLowerCase() === "f") updateRespect();
       });
 
-      // Update position of #neverForget and #pressF below main image on load and resize
       function positionTextBelowImage() {
         const img = document.getElementById("mainImage");
         const nf = document.getElementById("neverForget");
         const pf = document.getElementById("pressF");
 
         const rect = img.getBoundingClientRect();
-        const spacing = 10; // px space between image and text
+        const spacing = 10;
 
         nf.style.top = (window.scrollY + rect.bottom + spacing) + "px";
         pf.style.top = (window.scrollY + rect.bottom + spacing + nf.offsetHeight + 5) + "px";
@@ -252,7 +256,6 @@
 
     start();
 
-    // Resize canvas + update renderer size + style
     window.addEventListener("resize", () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
