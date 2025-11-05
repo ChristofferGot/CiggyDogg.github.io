@@ -5,9 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TITAN HOLO</title>
   <style>
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
       overflow: hidden;
+      width: 100%;
+      height: 100%;
       background-color: #3E363F;
       font-family: Arial, sans-serif;
       color: #fffce8;
@@ -21,6 +24,7 @@
       margin-top: 60px;
       position: relative;
       z-index: 2;
+      pointer-events: none; /* So you can interact with canvas behind */
     }
 
     a {
@@ -36,6 +40,7 @@
 
     a strong {
       color: #7EC8E3;
+      cursor: pointer;
     }
 
     #neverForget {
@@ -70,6 +75,7 @@
       color: #fffce8;
       cursor: pointer;
       z-index: 3;
+      user-select: none;
     }
 
     #pressF strong {
@@ -84,14 +90,15 @@
       width: 100%;
       height: 100%;
       z-index: 1;
+      display: block;
     }
   </style>
 </head>
 <body>
-  <img id="mainImage" src="titan-holo.png" alt="TITAN HOLO">
+  <img id="mainImage" src="titan-holo.png" alt="TITAN HOLO" />
 
   <div id="neverForget">
-    <span>#</span>Never<span>Forget</span> <img src="clueless-aware.gif" alt="AWARE">
+    <span>#</span>Never<span>Forget</span> <img src="clueless-aware.gif" alt="AWARE" />
   </div>
 
   <div id="pressF">Press <strong>F</strong> to pay respects (<span id="fCount">0</span>)</div>
@@ -107,6 +114,8 @@
     const canvas = document.getElementById("physicsCanvas");
     const engine = Engine.create();
     const world = engine.world;
+
+    // Initialize render with proper options
     const render = Render.create({
       canvas: canvas,
       engine: engine,
@@ -118,10 +127,11 @@
       }
     });
 
-    // CONFIG
+    // Config
     const imageFiles = [
-      "360fx360f1.png", "360fx360f2.png", "360fx360f8.png", "360fx360f3.png", "360fx360f4.png", "360fx360f5.png", 
-      "360fx360f6.png", "360fx360f7.png", "360fx360f9.png", "360fx360f01.png", "360fx360f7.png", "360fx360f7.png", "360fx360f7.png"
+      "360fx360f1.png", "360fx360f2.png", "360fx360f8.png", "360fx360f3.png", 
+      "360fx360f4.png", "360fx360f5.png", "360fx360f6.png", "360fx360f7.png", 
+      "360fx360f9.png", "360fx360f01.png", "360fx360f7.png", "360fx360f7.png", "360fx360f7.png"
     ];
 
     const specialIndex = 3;
@@ -132,17 +142,16 @@
     const NUM_BALLS = 13;
     const TARGET_IMG_SIZE = 360;
     const RESTITUTION = 0.85;
-    const FRICTION_AIR = 0.995;
+    const FRICTION_AIR = 0.02;  // consistent with original code
 
     const balls = [];
     const images = [];
     const sound = new Audio(specialSound);
     const cw = window.innerWidth;
     const ch = window.innerHeight;
-    canvas.width = cw;
-    canvas.height = ch;
     engine.gravity.y = 1;
 
+    // Walls (floor and sides)
     const walls = [
       Bodies.rectangle(cw / 2, ch + 50, cw, 100, { isStatic: true }),
       Bodies.rectangle(-50, ch / 2, 100, ch, { isStatic: true }),
@@ -154,6 +163,10 @@
       return new Promise(res => {
         const img = new Image();
         img.onload = () => res(img);
+        img.onerror = () => {
+          console.warn("Failed to load image:", src);
+          res(null); // resolve with null to avoid breaking
+        };
         img.src = src;
       });
     }
@@ -164,15 +177,16 @@
         const img = imgSrc ? await loadImage(imgSrc) : null;
         images.push(img);
 
-        const radius = i === largeIndex ? TARGET_IMG_SIZE * 0.675 / 2 : TARGET_IMG_SIZE / 2;
+        // Smaller radius so balls fit nicely on screen
+        const radius = i === largeIndex ? 80 : 60;
+
         const ball = Bodies.circle(Math.random() * cw, Math.random() * -500, radius, {
           restitution: RESTITUTION,
-          frictionAir: 0.02
+          frictionAir: FRICTION_AIR,
+          render: img
+            ? { texture: imgSrc, xScale: (radius * 2) / img.width, yScale: (radius * 2) / img.height }
+            : { fillStyle: "#fffce8" }
         });
-
-        ball.render.sprite = img
-          ? { texture: imgSrc, xScale: (radius * 2) / img.width, yScale: (radius * 2) / img.height }
-          : { fillStyle: "#fffce8" };
 
         ball.isSpecial = i === specialIndex;
         balls.push(ball);
@@ -181,16 +195,18 @@
       World.add(world, balls);
     }
 
-    initBalls().then(() => {
+    async function start() {
+      await initBalls();
+
+      // Setup mouse interaction
       const mouse = Mouse.create(render.canvas);
       const mouseConstraint = MouseConstraint.create(engine, {
         mouse: mouse,
         constraint: { stiffness: 0.2, render: { visible: false } }
       });
-
       World.add(world, mouseConstraint);
 
-      // Sound + Image change
+      // Play sound and change texture when dragging special ball
       Events.on(mouseConstraint, "startdrag", e => {
         const body = e.body;
         if (body && body.isSpecial) {
@@ -203,9 +219,9 @@
       const runner = Runner.create();
       Runner.run(runner, engine);
 
-      // initial bounce
+      // Initial random velocity so balls bounce visibly
       for (const b of balls) {
-        Body.setVelocity(b, { x: (Math.random() - 0.5) * 20, y: Math.random() * -20 });
+        Body.setVelocity(b, { x: (Math.random() - 0.5) * 10, y: Math.random() * -10 });
       }
 
       // Respect counter (persistent)
@@ -223,11 +239,23 @@
       document.addEventListener("keydown", e => {
         if (e.key.toLowerCase() === "f") updateRespect();
       });
-    });
+    }
 
+    start();
+
+    // Handle resize properly
     window.addEventListener("resize", () => {
-      render.canvas.width = window.innerWidth;
-      render.canvas.height = window.innerHeight;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      render.canvas.width = w;
+      render.canvas.height = h;
+
+      render.canvas.style.width = w + "px";
+      render.canvas.style.height = h + "px";
+
+      render.options.width = w;
+      render.options.height = h;
     });
   </script>
 </body>
