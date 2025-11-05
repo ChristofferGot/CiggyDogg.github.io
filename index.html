@@ -12,6 +12,7 @@
       color: #fffce8;
       text-align: center;
       user-select: none;
+      position: relative;
     }
 
     #mainImage {
@@ -87,6 +88,7 @@
       height: 100%;
       z-index: 4;
       display: block;
+      background: transparent;
     }
   </style>
 </head>
@@ -139,13 +141,12 @@
     const FRICTION_AIR = 0.02;
 
     const balls = [];
-    const images = [];
     const sound = new Audio(specialSound);
     const cw = window.innerWidth;
     const ch = window.innerHeight;
     engine.gravity.y = 1;
 
-    const walls = [
+    let walls = [
       Bodies.rectangle(cw / 2, ch + 50, cw, 100, { isStatic: true }),
       Bodies.rectangle(-50, ch / 2, 100, ch, { isStatic: true }),
       Bodies.rectangle(cw + 50, ch / 2, 100, ch, { isStatic: true })
@@ -155,10 +156,7 @@
     function loadImage(src) {
       return new Promise(res => {
         const img = new Image();
-        img.onload = () => {
-          console.log("Loaded image:", src, img.width, img.height);
-          res(img);
-        };
+        img.onload = () => res(img);
         img.onerror = () => {
           console.warn("Failed to load image:", src);
           res(null);
@@ -167,32 +165,49 @@
       });
     }
 
-    async function initBalls() {
-      for (let i = 0; i < NUM_BALLS; i++) {
-        const imgSrc = imageFiles[i] || "";
-        const img = imgSrc ? await loadImage(imgSrc) : null;
-        images.push(img);
+    async function createBall(i) {
+      const imgSrc = imageFiles[i] || "";
+      const radius = i === largeIndex ? 80 : 60;
 
-        const radius = i === largeIndex ? 80 : 60;
+      const startX = Math.random() * (cw - 2 * radius) + radius;
+      const startY = Math.random() * (ch / 2) + radius;
 
-        const ball = Bodies.circle(Math.random() * cw, Math.random() * -500, radius, {
-          restitution: RESTITUTION,
-          frictionAir: FRICTION_AIR,
-          render: { fillStyle: "#fffce8" } // temporary placeholder
-        });
+      // First, try to load the image
+      let ballOptions = {
+        restitution: RESTITUTION,
+        frictionAir: FRICTION_AIR,
+        render: { 
+          fillStyle: "#fffce8",
+          strokeStyle: "#DD403A",
+          lineWidth: 2
+        }
+      };
 
-        ball.isSpecial = i === specialIndex;
-        balls.push(ball);
-        World.add(world, ball);
-
-        // Assign render.sprite AFTER adding ball to world
+      if (imgSrc) {
+        const img = await loadImage(imgSrc);
         if (img) {
-          ball.render.sprite = {
+          // Only add sprite if image loaded successfully
+          ballOptions.render.sprite = {
             texture: imgSrc,
             xScale: (radius * 2) / img.width,
             yScale: (radius * 2) / img.height
           };
         }
+      }
+
+      const ball = Bodies.circle(startX, startY, radius, ballOptions);
+      ball.isSpecial = i === specialIndex;
+      ball.originalTexture = imgSrc;
+
+      World.add(world, ball);
+      balls.push(ball);
+
+      return ball;
+    }
+
+    async function initBalls() {
+      for (let i = 0; i < NUM_BALLS; i++) {
+        await createBall(i);
       }
     }
 
@@ -209,8 +224,20 @@
       Events.on(mouseConstraint, "startdrag", e => {
         const body = e.body;
         if (body && body.isSpecial) {
-          if (specialSound) sound.play();
-          if (specialNewImage) body.render.sprite.texture = specialNewImage;
+          if (specialSound) {
+            sound.currentTime = 0;
+            sound.play().catch(() => {}); // Ignore audio errors
+          }
+          if (specialNewImage) {
+            loadImage(specialNewImage).then(img => {
+              if (img && body.render.sprite) {
+                const radius = body.circleRadius;
+                body.render.sprite.texture = specialNewImage;
+                body.render.sprite.xScale = (radius * 2) / img.width;
+                body.render.sprite.yScale = (radius * 2) / img.height;
+              }
+            });
+          }
         }
       });
 
@@ -222,13 +249,13 @@
         Body.setVelocity(b, { x: (Math.random() - 0.5) * 10, y: Math.random() * -10 });
       }
 
-      let respectCount = parseInt(localStorage.getItem("respectCount") || "0");
+      // Use in-memory storage instead of localStorage
+      let respectCount = 0;
       const fCount = document.getElementById("fCount");
       fCount.textContent = respectCount;
 
       function updateRespect() {
         respectCount++;
-        localStorage.setItem("respectCount", respectCount);
         fCount.textContent = respectCount;
       }
 
@@ -266,6 +293,15 @@
       render.canvas.style.height = h + "px";
       render.options.width = w;
       render.options.height = h;
+
+      // Remove old walls and add new ones
+      World.remove(world, walls);
+      walls = [
+        Bodies.rectangle(w / 2, h + 50, w, 100, { isStatic: true }),
+        Bodies.rectangle(-50, h / 2, 100, h, { isStatic: true }),
+        Bodies.rectangle(w + 50, h / 2, 100, h, { isStatic: true })
+      ];
+      World.add(world, walls);
     });
   </script>
 </body>
