@@ -126,9 +126,9 @@
     });
 
     const imageFiles = [
-      "360fx360f1.png", "360fx360f2.png", "360fx360f8.png", "360fx360f3.png",
+      "360fx360f1.png", "360fx360f2.png", "360fx360f3.png", "360fx360f8.png",
       "360fx360f4.png", "360fx360f5.png", "360fx360f6.png", "360fx360f.png",
-      "360fx360f9.png", "360fx360f01.png", "360fx360f7.png", "360fx360f.png", "360fx360f.png"
+      "360fx360f.png", "360fx360f01.png", "360fx360f7.png", "360fx360f.png", "360fx360f9.png"
     ];
 
     const specialIndex = 3;
@@ -187,8 +187,8 @@
         const img = await loadImage(imgSrc);
         if (img) {
           // Only add sprite if image loaded successfully
-          // Scale to fit the circle diameter (radius * 2)
-          const scale = (radius * 2) / 360;
+          // Scale up to 1.8x to fill the ball and reduce deadspace
+          const scale = ((radius * 2) / 360) * 1.8;
           ballOptions.render.sprite = {
             texture: imgSrc,
             xScale: scale,
@@ -234,7 +234,7 @@
             loadImage(specialNewImage).then(img => {
               if (img && body.render.sprite) {
                 const radius = body.circleRadius;
-                const scale = (radius * 2) / 360;
+                const scale = ((radius * 2) / 360) * 1.8;
                 body.render.sprite.texture = specialNewImage;
                 body.render.sprite.xScale = scale;
                 body.render.sprite.yScale = scale;
