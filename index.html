@@ -310,12 +310,6 @@
       return ball;
     }
 
-    async function initBalls() {
-      for (let i = 0; i < NUM_BALLS; i++) {
-        await createBall(i);
-      }
-    }
-
     function createSparkles(x, y) {
       const colors = ['#FFD700', '#FFA500', '#FF69B4', '#00CED1', '#7EC8E3'];
       for (let i = 0; i < 8; i++) {
@@ -349,12 +343,11 @@
 
     function updateRespectText() {
       const hint = document.getElementById('secretHint');
-      const pressF = document.getElementById('pressF');
       const fCount = document.getElementById('fCount');
       
       fCount.textContent = respectCount;
       
-      if (respectCount === 3) {
+      if (respectCount >= 3 && respectCount < 67) {
         hint.textContent = "What is Mark's favourite number?";
         hint.style.display = 'block';
       } else if (respectCount >= 250) {
@@ -378,10 +371,10 @@
       } else if (respectCount >= 75) {
         hint.innerHTML = '<strong>You really wanna keep going?</strong>';
         hint.style.display = 'block';
-      } else if (respectCount >= 67) {
+      } else if (respectCount === 67) {
         hint.innerHTML = '<strong>GG\'s</strong>';
         hint.style.display = 'block';
-      } else if (respectCount !== 3) {
+      } else {
         hint.style.display = 'none';
       }
     }
@@ -514,70 +507,34 @@
             x: Math.random() * (cw - 2 * ball.circleRadius) + ball.circleRadius,
             y: Math.random() * (ch / 2) + ball.circleRadius
           });
-          Body.setVelocity(ball, { x: (Math.random() - 0.5) * 10, y: Math.random() * -10 });
-          ball.trailPoints = [];
+          Body.setVelocity(ball, { x: 0, y: 0 });
+          ball.render.sprite.texture = ball.originalTexture;
         }
+        respectCount = 0;
+        mac10Spawned = false;
+        updateRespectText();
       });
 
       document.getElementById("addStickerBtn").addEventListener("click", async () => {
-        const rand = Math.random();
-        let newBall;
-        
-        if (rand < 0.05) {
-          // 5% chance for special ball
-          newBall = await createBall(specialIndex);
-        } else if (rand < 0.15) {
-          // 10% chance for large ball
-          newBall = await createBall(largeIndex);
-        } else {
-          // 85% chance for random normal ball
-          const randomIndex = Math.floor(Math.random() * imageFiles.length);
-          newBall = await createBall(randomIndex);
-        }
-        
-        Body.setVelocity(newBall, { x: (Math.random() - 0.5) * 15, y: Math.random() * -15 });
+        await createBall(0, 60);
       });
-
-      function positionTextBelowImage() {
-        const img = document.getElementById("mainImage");
-        const nf = document.getElementById("neverForget");
-        const pf = document.getElementById("pressF");
-        const hint = document.getElementById("secretHint");
-
-        const rect = img.getBoundingClientRect();
-        const spacing = 10;
-
-        nf.style.top = (window.scrollY + rect.bottom + spacing) + "px";
-        pf.style.top = (window.scrollY + rect.bottom + spacing + nf.offsetHeight + 5) + "px";
-        hint.style.top = (window.scrollY + rect.bottom + spacing + nf.offsetHeight + pf.offsetHeight + 10) + "px";
-      }
-
-      window.addEventListener("resize", positionTextBelowImage);
-      window.addEventListener("load", positionTextBelowImage);
-      positionTextBelowImage();
     }
 
-    start();
+    async function initBalls() {
+      for (let i = 0; i < NUM_BALLS; i++) {
+        await createBall(i);
+      }
+    }
 
-    window.addEventListener("resize", () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-
-      render.canvas.width = w;
-      render.canvas.height = h;
-      render.canvas.style.width = w + "px";
-      render.canvas.style.height = h + "px";
-      render.options.width = w;
-      render.options.height = h;
-
-      World.remove(world, walls);
-      walls = [
-        Bodies.rectangle(w / 2, h + 50, w, 100, { isStatic: true }),
-        Bodies.rectangle(-50, h / 2, 100, h, { isStatic: true }),
-        Bodies.rectangle(w + 50, h / 2, 100, h, { isStatic: true })
-      ];
-      World.add(world, walls);
+    window.addEventListener('resize', () => {
+      Render.lookAt(render, {
+        min: { x: 0, y: 0 },
+        max: { x: window.innerWidth, y: window.innerHeight }
+      });
     });
+
+    start();
   </script>
 </body>
 </html>
+
