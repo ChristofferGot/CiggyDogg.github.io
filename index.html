@@ -89,6 +89,7 @@
       z-index: 5;
       user-select: text;
       transition: all 0.3s ease;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
     }
     a strong {
       color: #7EC8E3;
@@ -515,11 +516,9 @@
         }
         balls.length = 0;
         
-        // Reset counters
+        // Reset mac10 spawned flag but keep respect count
         const hadMac10 = respectCount >= 67;
-        respectCount = 0;
         mac10Spawned = false;
-        updateRespectText();
         
         // Reinitialize balls
         initBalls().then(() => {
@@ -545,7 +544,7 @@
         // 5% chance for special ball
         if (rand < 0.05) {
           customRadius = 60;
-          customImage = specialNewImage;
+          customImage = imageFiles[specialIndex];
           makeSpecial = true;
         }
         // 15% chance for big ball
