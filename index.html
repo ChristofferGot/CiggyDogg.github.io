@@ -187,10 +187,12 @@
         const img = await loadImage(imgSrc);
         if (img) {
           // Only add sprite if image loaded successfully
+          // Scale to fit the circle diameter (radius * 2)
+          const scale = (radius * 2) / 360;
           ballOptions.render.sprite = {
             texture: imgSrc,
-            xScale: (radius * 2) / img.width,
-            yScale: (radius * 2) / img.height
+            xScale: scale,
+            yScale: scale
           };
         }
       }
@@ -232,9 +234,10 @@
             loadImage(specialNewImage).then(img => {
               if (img && body.render.sprite) {
                 const radius = body.circleRadius;
+                const scale = (radius * 2) / 360;
                 body.render.sprite.texture = specialNewImage;
-                body.render.sprite.xScale = (radius * 2) / img.width;
-                body.render.sprite.yScale = (radius * 2) / img.height;
+                body.render.sprite.xScale = scale;
+                body.render.sprite.yScale = scale;
               }
             });
           }
