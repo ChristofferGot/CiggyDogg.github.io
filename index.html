@@ -19,7 +19,7 @@
       width: 58%;
       border: 10px solid #fffce8;
       border-radius: 20px;
-      margin: 60px auto 0 auto;
+      margin: 130px auto 0 auto;
       position: relative;
       z-index: 3;
       pointer-events: none;
@@ -45,7 +45,7 @@
     }
 
     #neverForget {
-      top: 20px;
+      top: 15px;
       font-size: 3.5em;
       font-weight: bold;
       text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
@@ -62,7 +62,7 @@
     }
 
     #pressF {
-      top: 140px;
+      top: 95px;
       font-size: 1.5em;
       cursor: pointer;
       color: #fffce8;
@@ -72,7 +72,7 @@
     }
 
     #secretHint {
-      top: 195px;
+      top: 125px;
       font-size: 1.1em;
       color: #7EC8E3;
       font-style: italic;
@@ -509,16 +509,31 @@
       });
 
       document.getElementById("resetBtn").addEventListener("click", () => {
+        // Remove all balls from the world
         for (const ball of balls) {
-          Body.setPosition(ball, {
-            x: Math.random() * (cw - 2 * ball.circleRadius) + ball.circleRadius,
-            y: Math.random() * (ch / 2) + ball.circleRadius
-          });
-          Body.setVelocity(ball, { x: 0, y: 0 });
+          World.remove(world, ball);
         }
+        balls.length = 0;
+        
+        // Reset counters
+        const hadMac10 = respectCount >= 67;
         respectCount = 0;
         mac10Spawned = false;
         updateRespectText();
+        
+        // Reinitialize balls
+        initBalls().then(() => {
+          // If we had reached 67 before, respawn the Mac10
+          if (hadMac10) {
+            mac10Spawned = true;
+            createBall(0, 120, "Mac10Heat.png");
+          }
+          
+          // Give all balls initial velocity
+          for (const b of balls) {
+            Body.setVelocity(b, { x: (Math.random() - 0.5) * 10, y: Math.random() * -10 });
+          }
+        });
       });
 
       document.getElementById("addStickerBtn").addEventListener("click", () => {
