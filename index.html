@@ -12,6 +12,7 @@
       color: #fffce8;
       text-align: center;
       user-select: none;
+      position: relative;
     }
 
     #mainImage {
@@ -87,6 +88,7 @@
       height: 100%;
       z-index: 4;
       display: block;
+      background: transparent;
     }
   </style>
 </head>
@@ -123,6 +125,7 @@
       }
     });
 
+    // Preserved your exact array with duplicates as requested
     const imageFiles = [
       "360fx360f1.png", "360fx360f2.png", "360fx360f8.png", "360fx360f3.png",
       "360fx360f4.png", "360fx360f5.png", "360fx360f6.png", "360fx360f.png",
@@ -155,10 +158,7 @@
     function loadImage(src) {
       return new Promise(res => {
         const img = new Image();
-        img.onload = () => {
-          console.log("Loaded image:", src, img.width, img.height);
-          res(img);
-        };
+        img.onload = () => res(img);
         img.onerror = () => {
           console.warn("Failed to load image:", src);
           res(null);
@@ -175,17 +175,20 @@
 
         const radius = i === largeIndex ? 80 : 60;
 
-        const ball = Bodies.circle(Math.random() * cw, Math.random() * -500, radius, {
+        // Start balls within visible area (not above)
+        const startX = Math.random() * (cw - 2 * radius) + radius;
+        const startY = Math.random() * (ch / 2) + radius;
+
+        const ball = Bodies.circle(startX, startY, radius, {
           restitution: RESTITUTION,
           frictionAir: FRICTION_AIR,
-          render: { fillStyle: "#fffce8" } // temporary placeholder
+          render: { fillStyle: "#fffce8" }
         });
 
         ball.isSpecial = i === specialIndex;
         balls.push(ball);
         World.add(world, ball);
 
-        // Assign render.sprite AFTER adding ball to world
         if (img) {
           ball.render.sprite = {
             texture: imgSrc,
@@ -209,8 +212,21 @@
       Events.on(mouseConstraint, "startdrag", e => {
         const body = e.body;
         if (body && body.isSpecial) {
-          if (specialSound) sound.play();
-          if (specialNewImage) body.render.sprite.texture = specialNewImage;
+          if (specialSound) {
+            sound.currentTime = 0;
+            sound.play();
+          }
+          if (specialNewImage) {
+            body.render.sprite.texture = specialNewImage;
+            loadImage(specialNewImage).then(img => {
+              if (img) {
+                const radius = body.circleRadius;
+                body.render.sprite.xScale = (radius * 2) / img.width;
+                body.render.sprite.yScale = (radius * 2) / img.height;
+                Render.lookAt(render, body);
+              }
+            });
+          }
         }
       });
 
@@ -266,6 +282,15 @@
       render.canvas.style.height = h + "px";
       render.options.width = w;
       render.options.height = h;
+
+      // Remove old walls and add new ones to fit new window size
+      World.remove(world, world.bodies.filter(b => b.isStatic));
+      const walls = [
+        Bodies.rectangle(w / 2, h + 50, w, 100, { isStatic: true }),
+        Bodies.rectangle(-50, h / 2, 100, h, { isStatic: true }),
+        Bodies.rectangle(w + 50, h / 2, 100, h, { isStatic: true })
+      ];
+      World.add(world, walls);
     });
   </script>
 </body>
