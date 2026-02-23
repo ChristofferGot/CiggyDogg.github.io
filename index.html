@@ -78,32 +78,6 @@
       font-style: italic;
     }
 
-    a {
-      position: fixed;
-      bottom: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: #fffce8;
-      text-decoration: none;
-      font-size: 1.2em;
-      z-index: 5;
-      user-select: text;
-      transition: all 0.3s ease;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
-    }
-    a strong {
-      color: #7EC8E3;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    a:hover {
-      transform: translateX(-50%) translateY(-3px);
-    }
-    a:hover strong {
-      color: #DD403A;
-      text-shadow: 0 0 10px rgba(221, 64, 58, 0.5);
-    }
-
     canvas {
       position: fixed;
       top: 0;
@@ -199,8 +173,6 @@
 
   <button class="top-button" id="resetBtn">Reset Stickers</button>
   <button class="top-button" id="addStickerBtn">+1 Sticker</button>
-
-  <a href="https://guns.lol/chris_got" aria-label="Made by Chris Got link">Made by <strong>Chris Got</strong> →</a>
 
   <canvas id="physicsCanvas"></canvas>
 
@@ -510,25 +482,20 @@
       });
 
       document.getElementById("resetBtn").addEventListener("click", () => {
-        // Remove all balls from the world
         for (const ball of balls) {
           World.remove(world, ball);
         }
         balls.length = 0;
         
-        // Reset mac10 spawned flag but keep respect count
         const hadMac10 = respectCount >= 67;
         mac10Spawned = false;
         
-        // Reinitialize balls
         initBalls().then(() => {
-          // If we had reached 67 before, respawn the Mac10
           if (hadMac10) {
             mac10Spawned = true;
             createBall(0, 120, "Mac10Heat.png");
           }
           
-          // Give all balls initial velocity
           for (const b of balls) {
             Body.setVelocity(b, { x: (Math.random() - 0.5) * 10, y: Math.random() * -10 });
           }
@@ -541,30 +508,24 @@
         let customImage = null;
         let makeSpecial = false;
         
-        // 5% chance for special ball
         if (rand < 0.05) {
           customRadius = 60;
           customImage = imageFiles[specialIndex];
           makeSpecial = true;
         }
-        // 15% chance for big ball
         else if (rand < 0.20) {
           customRadius = 80;
-          // Filter out the special ball image
           const normalImages = imageFiles.filter((img, idx) => idx !== specialIndex);
           customImage = normalImages[Math.floor(Math.random() * normalImages.length)];
         }
-        // 80% chance for regular ball
         else {
           customRadius = 60;
-          // Filter out the special ball image
           const normalImages = imageFiles.filter((img, idx) => idx !== specialIndex);
           customImage = normalImages[Math.floor(Math.random() * normalImages.length)];
         }
         
         await createBall(balls.length, customRadius, customImage, makeSpecial);
         
-        // Give the new ball some initial velocity
         const newBall = balls[balls.length - 1];
         Body.setVelocity(newBall, { x: (Math.random() - 0.5) * 10, y: Math.random() * -10 });
       });
